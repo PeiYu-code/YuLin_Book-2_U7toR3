@@ -30,7 +30,7 @@ const words = [
 let remaining = [...words];
 let leftSlots = [];
 let rightSlots = [];
-let selected = null;
+let selectedLeft = null;
 let wrongCount = 0;
 
 document.getElementById("startBtn").onclick = () => {
@@ -60,36 +60,27 @@ function initGame() {
 
   const pool = [];
 
-  // 取 5 個單字
   for (let i = 0; i < 5; i++) {
     const w = drawWord();
     if (w) pool.push(w);
   }
 
-  // LEFT：固定順序
+  const shuffled = [...pool].sort(() => Math.random() - 0.5);
+
   pool.forEach(w => {
     const div = createSlot(w.zh, "left");
+    div.onclick = () => selectLeft(w, div);
     leftCol.appendChild(div);
 
-    leftSlots.push({
-      el: div,
-      word: w,
-      matched: false
-    });
+    leftSlots.push({ word: w, el: div, matched: false });
   });
-
-  // RIGHT：打亂順序 ⭐關鍵
-  const shuffled = [...pool].sort(() => Math.random() - 0.5);
 
   shuffled.forEach(w => {
     const div = createSlot(w.en, "right");
+    div.onclick = () => selectRight(w, div);
     rightCol.appendChild(div);
 
-    rightSlots.push({
-      el: div,
-      word: w,
-      matched: false
-    });
+    rightSlots.push({ word: w, el: div, matched: false });
   });
 }
 
@@ -104,9 +95,15 @@ function createSlot(text, side) {
 }
 
 /* =========================
-   RESET WRONG COLOR
+   RESET COLORS (錯誤後點任意處恢復)
 ========================= */
-function resetColors() {
+document.addEventListener("click", (e) => {
+  if (!e.target.classList.contains("slot")) {
+    clearColors();
+  }
+});
+
+function clearColors() {
   document.querySelectorAll(".slot").forEach(el => {
     el.style.backgroundColor = "";
     el.style.color = "";
@@ -116,34 +113,30 @@ function resetColors() {
 /* =========================
    SELECT LEFT
 ========================= */
-function selectLeft(slot) {
-  resetColors();
+function selectLeft(word, el) {
+  clearColors();
 
-  document.querySelectorAll(".left")
-    .forEach(el => el.classList.remove("selected"));
+  document.querySelectorAll(".left").forEach(x => x.classList.remove("selected"));
+  el.classList.add("selected");
 
-  slot.el.classList.add("selected");
-  selected = slot;
+  selectedLeft = { word, el };
 }
 
 /* =========================
    SELECT RIGHT
 ========================= */
-function selectRight(slot) {
-  if (!selected) return;
+function selectRight(word, el) {
+  if (!selectedLeft) return;
 
-  const left = selected;
-
-  if (left.word === slot.word) {
+  if (selectedLeft.word === word) {
     // ✅ correct
-    left.matched = true;
-    slot.matched = true;
+    selectedLeft.el.style.backgroundColor = "#2e7d32";
+    selectedLeft.el.style.color = "white";
 
-    left.el.style.backgroundColor = "#2e7d32";
-    left.el.style.color = "white";
+    el.style.backgroundColor = "#2e7d32";
+    el.style.color = "white";
 
-    slot.el.style.backgroundColor = "#2e7d32";
-    slot.el.style.color = "white";
+    markMatched(selectedLeft.word);
 
     checkFinish();
 
@@ -151,23 +144,35 @@ function selectRight(slot) {
     // ❌ wrong
     wrongCount++;
 
-    left.el.style.backgroundColor = "#c62828";
-    slot.el.style.backgroundColor = "#c62828";
+    selectedLeft.el.style.backgroundColor = "#c62828";
+    el.style.backgroundColor = "#c62828";
 
-    left.el.style.color = "white";
-    slot.el.style.color = "white";
+    selectedLeft.el.style.color = "white";
+    el.style.color = "white";
   }
 
-  selected = null;
+  selectedLeft = null;
+}
+
+/* =========================
+   MARK MATCHED
+========================= */
+function markMatched(word) {
+  leftSlots.forEach(s => {
+    if (s.word === word) s.matched = true;
+  });
+  rightSlots.forEach(s => {
+    if (s.word === word) s.matched = true;
+  });
 }
 
 /* =========================
    CHECK FINISH
 ========================= */
 function checkFinish() {
-  const allDone = leftSlots.every(s => s.matched);
+  const done = leftSlots.every(s => s.matched);
 
-  if (allDone) {
+  if (done) {
     setTimeout(() => {
       alert(`完成！\n錯誤次數：${wrongCount}`);
     }, 200);
