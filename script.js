@@ -28,8 +28,8 @@ const words = [
 ];
 
 let remaining = [...words];
-let slots = []; // ⭐ 固定 5 個 slot
-let selectedLeft = null;
+let slots = [];
+let selected = null;
 
 document.getElementById("startBtn").onclick = () => {
   document.getElementById("startScreen").style.display = "none";
@@ -58,76 +58,89 @@ function initGame() {
     const left = createSlot(word.zh, "left");
     const right = createSlot(word.en, "right");
 
-    const pair = {
+    const slotObj = {
       word,
       leftEl: left,
       rightEl: right
     };
 
-    left.onclick = () => selectLeft(pair);
-    right.onclick = () => selectRight(pair);
+    left.onclick = () => selectLeft(slotObj);
+    right.onclick = () => selectRight(slotObj);
 
     leftCol.appendChild(left);
     rightCol.appendChild(right);
 
-    slots.push(pair);
+    slots.push(slotObj);
   }
 }
 
+/* =========================
+   SLOT CREATION
+========================= */
 function createSlot(text, side) {
   const div = document.createElement("div");
-  div.className = `slot ${side}`;
+  div.className = `slot ${side} fade-in`;
   div.innerText = text;
   return div;
 }
 
-function selectLeft(pair) {
-  document.querySelectorAll(".left").forEach(el => el.classList.remove("selected"));
-  pair.leftEl.classList.add("selected");
-  selectedLeft = pair;
+/* =========================
+   SELECT LEFT
+========================= */
+function selectLeft(slot) {
+  document.querySelectorAll(".left")
+    .forEach(el => el.classList.remove("selected"));
+
+  slot.leftEl.classList.add("selected");
+  selected = slot;
 }
 
-function selectRight(pair) {
-  if (!selectedLeft) return;
+/* =========================
+   SELECT RIGHT
+========================= */
+function selectRight(slot) {
+  if (!selected) return;
 
-  if (selectedLeft.word === pair.word) {
-    replaceSlot(pair);
+  if (selected.word !== slot.word) {
+    selected = null;
+    return;
   }
 
-  selectedLeft = null;
+  replaceSlot(slot);
+  selected = null;
 }
 
-function replaceSlot(pair) {
+/* =========================
+   REPLACE ONLY ONE SLOT
+========================= */
+function replaceSlot(slot) {
   const newWord = drawWord();
 
-  // fade out OLD
-  pair.leftEl.classList.add("fade-out");
-  pair.rightEl.classList.add("fade-out");
+  // fade out ONLY this pair
+  slot.leftEl.classList.add("fade-out");
+  slot.rightEl.classList.add("fade-out");
 
   setTimeout(() => {
+
     if (!newWord) {
-      pair.leftEl.style.visibility = "hidden";
-      pair.rightEl.style.visibility = "hidden";
+      slot.leftEl.style.visibility = "hidden";
+      slot.rightEl.style.visibility = "hidden";
       return;
     }
 
-    // update data
-    pair.word = newWord;
+    // update data (NO reshuffle, NO reorder)
+    slot.word = newWord;
 
     // update text
-    pair.leftEl.innerText = newWord.zh;
-    pair.rightEl.innerText = newWord.en;
+    slot.leftEl.innerText = newWord.zh;
+    slot.rightEl.innerText = newWord.en;
 
     // reset animation
-    pair.leftEl.classList.remove("fade-out");
-    pair.rightEl.classList.remove("fade-out");
+    slot.leftEl.classList.remove("fade-out");
+    slot.rightEl.classList.remove("fade-out");
 
-    pair.leftEl.classList.add("fade-in");
-    pair.rightEl.classList.add("fade-in");
+    slot.leftEl.classList.add("fade-in");
+    slot.rightEl.classList.add("fade-in");
 
-    // rebind click
-    pair.leftEl.onclick = () => selectLeft(pair);
-    pair.rightEl.onclick = () => selectRight(pair);
-
-  }, 300);
+  }, 250);
 }
