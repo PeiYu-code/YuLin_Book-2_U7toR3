@@ -29,6 +29,8 @@ const words = [
 
 let remaining = [...words];
 let currentPairs = [];
+let leftSlots = [];
+let rightSlots = [];
 let selectedLeft = null;
 
 document.getElementById("startBtn").onclick = () => {
@@ -36,11 +38,6 @@ document.getElementById("startBtn").onclick = () => {
   document.getElementById("gameScreen").style.display = "block";
   initGame();
 };
-
-function initGame() {
-  currentPairs = drawWords(5);
-  render();
-}
 
 function drawWords(n) {
   let result = [];
@@ -52,36 +49,44 @@ function drawWords(n) {
   return result;
 }
 
-function render() {
+function initGame() {
+  currentPairs = drawWords(5);
+
   const leftCol = document.getElementById("leftColumn");
   const rightCol = document.getElementById("rightColumn");
 
   leftCol.innerHTML = "";
   rightCol.innerHTML = "";
 
-  let shuffled = [...currentPairs].sort(() => Math.random() - 0.5);
+  leftSlots = [];
+  rightSlots = [];
 
-  currentPairs.forEach(word => {
-    const div = document.createElement("div");
-    div.className = "slot left new";
-    div.innerText = word.zh;
+  currentPairs.forEach((word, i) => {
+    const leftDiv = createSlot(word.zh, "left", () => selectLeft(leftDiv, word));
+    leftCol.appendChild(leftDiv);
+    leftSlots.push({ el: leftDiv, word });
 
-    setTimeout(() => div.classList.add("fade-in"), 10);
-
-    div.onclick = () => selectLeft(div, word);
-    leftCol.appendChild(div);
+    const rightDiv = createSlot(word.en, "right", () => selectRight(rightDiv, word));
+    rightCol.appendChild(rightDiv);
+    rightSlots.push({ el: rightDiv, word });
   });
 
-  shuffled.forEach(word => {
-    const div = document.createElement("div");
-    div.className = "slot right new";
-    div.innerText = word.en;
+  shuffleRight();
+}
 
-    setTimeout(() => div.classList.add("fade-in"), 10);
+function createSlot(text, side, onClick) {
+  const div = document.createElement("div");
+  div.className = `slot ${side} fade-in`;
+  div.innerText = text;
+  div.onclick = onClick;
+  return div;
+}
 
-    div.onclick = () => selectRight(div, word);
-    rightCol.appendChild(div);
-  });
+function shuffleRight() {
+  rightSlots.sort(() => Math.random() - 0.5);
+  const rightCol = document.getElementById("rightColumn");
+  rightCol.innerHTML = "";
+  rightSlots.forEach(obj => rightCol.appendChild(obj.el));
 }
 
 function selectLeft(div, word) {
@@ -94,24 +99,50 @@ function selectRight(div, word) {
   if (!selectedLeft) return;
 
   if (selectedLeft === word) {
-    div.classList.add("matched");
+    const index = currentPairs.findIndex(w => w === word);
 
-    document.querySelectorAll(".left").forEach(el => {
-      if (el.innerText === word.zh) el.classList.add("matched");
-    });
+    const leftObj = leftSlots[index];
+    const rightObj = rightSlots.find(obj => obj.word === word);
+
+    // fade out
+    leftObj.el.classList.add("fade-out");
+    rightObj.el.classList.add("fade-out");
 
     setTimeout(() => {
-      currentPairs = currentPairs.filter(w => w !== word);
-
       if (remaining.length > 0) {
-        let newWord = drawWords(1)[0];
-        if (newWord) currentPairs.push(newWord);
-      }
+        const newWord = drawWords(1)[0];
 
-      if (currentPairs.length === 0) {
-        alert("完成！");
+        // 更新資料
+        currentPairs[index] = newWord;
+        leftObj.word = newWord;
+        rightObj.word = newWord;
+
+        // 更新文字
+        leftObj.el.innerText = newWord.zh;
+        rightObj.el.innerText = newWord.en;
+
+        // reset animation
+        leftObj.el.classList.remove("fade-out");
+        rightObj.el.classList.remove("fade-out");
+
+        leftObj.el.classList.add("fade-in");
+        rightObj.el.classList.add("fade-in");
+
+        // 更新 click 綁定
+        leftObj.el.onclick = () => selectLeft(leftObj.el, newWord);
+        rightObj.el.onclick = () => selectRight(rightObj.el, newWord);
+
+        shuffleRight();
+
       } else {
-        render();
+        leftObj.el.style.visibility = "hidden";
+        rightObj.el.style.visibility = "hidden";
+
+        currentPairs.splice(index, 1);
+
+        if (currentPairs.length === 0) {
+          alert("完成！");
+        }
       }
     }, 400);
   }
