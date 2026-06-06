@@ -18,19 +18,13 @@ const words = [
   { zh: "celebrity", en: "名人" },
   { zh: "fascination", en: "著迷" },
   { zh: "fiction", en: "小說" },
-  { zh: "discuss", en: "探討、討論" },
-  { zh: "method", en: "方式" },
-  { zh: "as well as", en: "和" },
-  { zh: "for free", en: "免費" },
-  { zh: "at present", en: "現在" },
-  { zh: "give... a try", en: "嘗試" },
-  { zh: "broaden one's horizons", en: "拓展某人的視野" }
+  { zh: "discuss", en: "探討、討論" }
 ];
 
 let remaining = [...words];
 let leftSlots = [];
 let rightSlots = [];
-let selectedLeft = null;
+let selected = null;
 let wrongCount = 0;
 
 document.getElementById("startBtn").onclick = () => {
@@ -46,7 +40,7 @@ function drawWord() {
 }
 
 /* =========================
-   INIT GAME
+   INIT
 ========================= */
 function initGame() {
   const leftCol = document.getElementById("leftColumn");
@@ -68,24 +62,22 @@ function initGame() {
   const shuffled = [...pool].sort(() => Math.random() - 0.5);
 
   pool.forEach(w => {
-    const div = createSlot(w.zh, "left");
-    div.onclick = () => selectLeft(w, div);
-    leftCol.appendChild(div);
+    const el = createSlot(w.zh, "left");
+    leftCol.appendChild(el);
 
-    leftSlots.push({ word: w, el: div, matched: false });
+    leftSlots.push({ word: w, el });
   });
 
   shuffled.forEach(w => {
-    const div = createSlot(w.en, "right");
-    div.onclick = () => selectRight(w, div);
-    rightCol.appendChild(div);
+    const el = createSlot(w.en, "right");
+    rightCol.appendChild(el);
 
-    rightSlots.push({ word: w, el: div, matched: false });
+    rightSlots.push({ word: w, el });
   });
 }
 
 /* =========================
-   SLOT CREATION
+   SLOT
 ========================= */
 function createSlot(text, side) {
   const div = document.createElement("div");
@@ -95,14 +87,8 @@ function createSlot(text, side) {
 }
 
 /* =========================
-   RESET COLORS (錯誤後點任意處恢復)
+   RESET COLORS
 ========================= */
-document.addEventListener("click", (e) => {
-  if (!e.target.classList.contains("slot")) {
-    clearColors();
-  }
-});
-
 function clearColors() {
   document.querySelectorAll(".slot").forEach(el => {
     el.style.backgroundColor = "";
@@ -111,70 +97,74 @@ function clearColors() {
 }
 
 /* =========================
-   SELECT LEFT
+   LEFT
 ========================= */
-function selectLeft(word, el) {
+function selectLeft(slot) {
   clearColors();
 
-  document.querySelectorAll(".left").forEach(x => x.classList.remove("selected"));
-  el.classList.add("selected");
+  document.querySelectorAll(".left")
+    .forEach(el => el.classList.remove("selected"));
 
-  selectedLeft = { word, el };
+  slot.el.classList.add("selected");
+  selected = slot;
 }
 
 /* =========================
-   SELECT RIGHT
+   RIGHT
 ========================= */
-function selectRight(word, el) {
-  if (!selectedLeft) return;
+function selectRight(slot) {
+  if (!selected) return;
 
-  if (selectedLeft.word === word) {
+  if (selected.word === slot.word) {
     // ✅ correct
-    selectedLeft.el.style.backgroundColor = "#2e7d32";
-    selectedLeft.el.style.color = "white";
+    selected.el.style.backgroundColor = "#2e7d32";
+    selected.el.style.color = "white";
 
-    el.style.backgroundColor = "#2e7d32";
-    el.style.color = "white";
+    slot.el.style.backgroundColor = "#2e7d32";
+    slot.el.style.color = "white";
 
-    markMatched(selectedLeft.word);
-
-    checkFinish();
+    replaceLeftSlot(selected);
+    replaceRightSlot(slot);
 
   } else {
     // ❌ wrong
     wrongCount++;
 
-    selectedLeft.el.style.backgroundColor = "#c62828";
-    el.style.backgroundColor = "#c62828";
+    selected.el.style.backgroundColor = "#c62828";
+    slot.el.style.backgroundColor = "#c62828";
 
-    selectedLeft.el.style.color = "white";
-    el.style.color = "white";
+    selected.el.style.color = "white";
+    slot.el.style.color = "white";
   }
 
-  selectedLeft = null;
+  selected = null;
 }
 
 /* =========================
-   MARK MATCHED
+   🔥 KEY FIX: replace slot
 ========================= */
-function markMatched(word) {
-  leftSlots.forEach(s => {
-    if (s.word === word) s.matched = true;
-  });
-  rightSlots.forEach(s => {
-    if (s.word === word) s.matched = true;
-  });
+function replaceLeftSlot(slot) {
+  const newWord = drawWord();
+  if (!newWord) return;
+
+  setTimeout(() => {
+    slot.word = newWord;
+    slot.el.innerText = newWord.zh;
+
+    slot.el.style.backgroundColor = "";
+    slot.el.style.color = "";
+  }, 300);
 }
 
-/* =========================
-   CHECK FINISH
-========================= */
-function checkFinish() {
-  const done = leftSlots.every(s => s.matched);
+function replaceRightSlot(slot) {
+  const newWord = drawWord();
+  if (!newWord) return;
 
-  if (done) {
-    setTimeout(() => {
-      alert(`完成！\n錯誤次數：${wrongCount}`);
-    }, 200);
-  }
+  setTimeout(() => {
+    slot.word = newWord;
+    slot.el.innerText = newWord.en;
+
+    slot.el.style.backgroundColor = "";
+    slot.el.style.color = "";
+  }, 300);
 }
