@@ -28,7 +28,8 @@ const words = [
 ];
 
 let remaining = [...words];
-let slots = [];
+let leftSlots = [];
+let rightSlots = [];
 let selected = null;
 let wrongCount = 0;
 
@@ -44,6 +45,9 @@ function drawWord() {
   return remaining.splice(i, 1)[0];
 }
 
+/* =========================
+   INIT GAME
+========================= */
 function initGame() {
   const leftCol = document.getElementById("leftColumn");
   const rightCol = document.getElementById("rightColumn");
@@ -51,33 +55,46 @@ function initGame() {
   leftCol.innerHTML = "";
   rightCol.innerHTML = "";
 
-  slots = [];
+  leftSlots = [];
+  rightSlots = [];
 
+  const pool = [];
+
+  // 取 5 個單字
   for (let i = 0; i < 5; i++) {
-    const word = drawWord();
-
-    const left = createSlot(word.zh, "left");
-    const right = createSlot(word.en, "right");
-
-    const slotObj = {
-      word,
-      leftEl: left,
-      rightEl: right,
-      matched: false
-    };
-
-    left.onclick = () => selectLeft(slotObj);
-    right.onclick = () => selectRight(slotObj);
-
-    leftCol.appendChild(left);
-    rightCol.appendChild(right);
-
-    slots.push(slotObj);
+    const w = drawWord();
+    if (w) pool.push(w);
   }
+
+  // LEFT：固定順序
+  pool.forEach(w => {
+    const div = createSlot(w.zh, "left");
+    leftCol.appendChild(div);
+
+    leftSlots.push({
+      el: div,
+      word: w,
+      matched: false
+    });
+  });
+
+  // RIGHT：打亂順序 ⭐關鍵
+  const shuffled = [...pool].sort(() => Math.random() - 0.5);
+
+  shuffled.forEach(w => {
+    const div = createSlot(w.en, "right");
+    rightCol.appendChild(div);
+
+    rightSlots.push({
+      el: div,
+      word: w,
+      matched: false
+    });
+  });
 }
 
 /* =========================
-   SLOT
+   SLOT CREATION
 ========================= */
 function createSlot(text, side) {
   const div = document.createElement("div");
@@ -87,12 +104,11 @@ function createSlot(text, side) {
 }
 
 /* =========================
-   RESET COLORS
+   RESET WRONG COLOR
 ========================= */
 function resetColors() {
   document.querySelectorAll(".slot").forEach(el => {
     el.style.backgroundColor = "";
-    el.style.borderColor = "";
     el.style.color = "";
   });
 }
@@ -106,7 +122,7 @@ function selectLeft(slot) {
   document.querySelectorAll(".left")
     .forEach(el => el.classList.remove("selected"));
 
-  slot.leftEl.classList.add("selected");
+  slot.el.classList.add("selected");
   selected = slot;
 }
 
@@ -117,18 +133,17 @@ function selectRight(slot) {
   if (!selected) return;
 
   const left = selected;
-  const right = slot;
 
-  if (left.word === right.word) {
+  if (left.word === slot.word) {
     // ✅ correct
     left.matched = true;
+    slot.matched = true;
 
-    left.leftEl.style.backgroundColor = "#2e7d32";
-    left.leftEl.style.color = "white";
-    left.rightEl.style.backgroundColor = "#2e7d32";
-    right.rightEl.style.color = "white";
+    left.el.style.backgroundColor = "#2e7d32";
+    left.el.style.color = "white";
 
-    left.leftEl.classList.remove("selected");
+    slot.el.style.backgroundColor = "#2e7d32";
+    slot.el.style.color = "white";
 
     checkFinish();
 
@@ -136,11 +151,11 @@ function selectRight(slot) {
     // ❌ wrong
     wrongCount++;
 
-    left.leftEl.style.backgroundColor = "#c62828";
-    left.leftEl.style.color = "white";
+    left.el.style.backgroundColor = "#c62828";
+    slot.el.style.backgroundColor = "#c62828";
 
-    right.rightEl.style.backgroundColor = "#c62828";
-    right.rightEl.style.color = "white";
+    left.el.style.color = "white";
+    slot.el.style.color = "white";
   }
 
   selected = null;
@@ -150,7 +165,7 @@ function selectRight(slot) {
    CHECK FINISH
 ========================= */
 function checkFinish() {
-  const allDone = slots.every(s => s.matched);
+  const allDone = leftSlots.every(s => s.matched);
 
   if (allDone) {
     setTimeout(() => {
