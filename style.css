@@ -1,6 +1,8 @@
 body {
   margin: 0;
-  font-family: sans-serif;
+  font-family: Arial, sans-serif;
+
+  /* 🌊 Santorini / 海灘風格背景 */
   background-image: url("https://images.unsplash.com/photo-1507525428034-b723cf961d3e");
   background-size: cover;
   background-position: center;
@@ -8,6 +10,9 @@ body {
   background-attachment: fixed;
 }
 
+/* =======================
+   Start 畫面
+======================= */
 #startScreen {
   height: 100vh;
   display: flex;
@@ -18,73 +23,108 @@ body {
 #startBtn {
   font-size: 24px;
   padding: 15px 40px;
-  border-radius: 10px;
+  border-radius: 12px;
   border: none;
   background-color: #1976d2;
   color: white;
   cursor: pointer;
+  transition: 0.2s;
 }
 
+#startBtn:hover {
+  transform: scale(1.05);
+}
+
+/* =======================
+   遊戲主容器
+======================= */
 .game-container {
   margin: 40px auto;
-  width: 80%;
-  max-width: 800px;
-  background-color: rgba(255,255,255,0.85);
-  padding: 20px;
-  border-radius: 15px;
+  width: 85%;
+  max-width: 900px;
+  background-color: rgba(255, 255, 255, 0.88);
+  padding: 25px;
+  border-radius: 18px;
+  backdrop-filter: blur(4px);
 }
 
+/* 左右欄 */
 .columns {
   display: flex;
   justify-content: space-between;
+  gap: 20px;
 }
 
 #leftColumn, #rightColumn {
-  width: 45%;
+  width: 48%;
 }
 
+/* =======================
+   slot 基礎樣式
+======================= */
 .slot {
-  height: 55px;
+  height: 60px;
   margin: 10px 0;
   font-size: 20px;
   display: flex;
   align-items: center;
   justify-content: center;
-  border-radius: 10px;
+
+  border-radius: 12px;
   cursor: pointer;
-  transition: all 0.4s ease;
+
+  transition: all 0.3s ease;
+  user-select: none;
 }
 
-/* 左 */
+/* hover 效果 */
+.slot:hover {
+  transform: scale(1.04);
+}
+
+/* =======================
+   左邊（中文）
+======================= */
 .left {
   border: 2px solid #2e7d32;
   background-color: #e8f5e9;
   color: #1b5e20;
 }
 
-/* 右 */
+/* =======================
+   右邊（英文）
+======================= */
 .right {
   border: 2px solid #1565c0;
   background-color: #e3f2fd;
   color: #0d47a1;
 }
 
-.slot:hover {
-  transform: scale(1.05);
-}
-
+/* =======================
+   選取效果
+======================= */
 .selected {
-  box-shadow: 0 0 10px orange;
+  box-shadow: 0 0 12px rgba(255, 152, 0, 0.9);
 }
 
-/* fade out */
+/* =======================
+   動畫：fade out / in
+======================= */
 .fade-out {
   opacity: 0;
-  transform: scale(0.8);
+  transform: scale(0.85);
+  transition: all 0.3s ease;
 }
 
-/* fade in */
 .fade-in {
   opacity: 1;
   transform: scale(1);
+  transition: all 0.3s ease;
+}
+
+/* =======================
+   消失（最後用）
+======================= */
+.hidden {
+  visibility: hidden;
 }
