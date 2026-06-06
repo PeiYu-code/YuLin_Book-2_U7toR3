@@ -4,7 +4,7 @@ body {
   background-image: url("https://images.unsplash.com/photo-1507525428034-b723cf961d3e");
   background-size: cover;
   background-position: center;
-  background-repeat: no-repeat;   /* ✅ 修正重複背景 */
+  background-repeat: no-repeat;
   background-attachment: fixed;
 }
 
@@ -52,17 +52,17 @@ body {
   justify-content: center;
   border-radius: 10px;
   cursor: pointer;
-  transition: all 0.4s ease;   /* ✅ 讓動畫順 */
+  transition: all 0.4s ease;
 }
 
-/* 左邊 */
+/* 左 */
 .left {
   border: 2px solid #2e7d32;
   background-color: #e8f5e9;
   color: #1b5e20;
 }
 
-/* 右邊 */
+/* 右 */
 .right {
   border: 2px solid #1565c0;
   background-color: #e3f2fd;
@@ -78,17 +78,12 @@ body {
 }
 
 /* fade out */
-.matched {
+.fade-out {
   opacity: 0;
   transform: scale(0.8);
 }
 
-/* 新題淡入 */
-.new {
-  opacity: 0;
-  transform: scale(0.8);
-}
-
+/* fade in */
 .fade-in {
   opacity: 1;
   transform: scale(1);
