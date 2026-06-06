@@ -63,16 +63,22 @@ function render() {
 
   currentPairs.forEach(word => {
     const div = document.createElement("div");
-    div.className = "slot left";
+    div.className = "slot left new";
     div.innerText = word.zh;
+
+    setTimeout(() => div.classList.add("fade-in"), 10);
+
     div.onclick = () => selectLeft(div, word);
     leftCol.appendChild(div);
   });
 
   shuffled.forEach(word => {
     const div = document.createElement("div");
-    div.className = "slot right";
+    div.className = "slot right new";
     div.innerText = word.en;
+
+    setTimeout(() => div.classList.add("fade-in"), 10);
+
     div.onclick = () => selectRight(div, word);
     rightCol.appendChild(div);
   });
