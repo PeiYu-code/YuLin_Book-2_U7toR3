@@ -28,9 +28,7 @@ const words = [
 ];
 
 let remaining = [...words];
-let currentPairs = [];
-let leftSlots = [];
-let rightSlots = [];
+let slots = []; // ⭐ 固定 5 個 slot
 let selectedLeft = null;
 
 document.getElementById("startBtn").onclick = () => {
@@ -39,113 +37,97 @@ document.getElementById("startBtn").onclick = () => {
   initGame();
 };
 
-function drawWords(n) {
-  let result = [];
-  for (let i = 0; i < n; i++) {
-    if (remaining.length === 0) break;
-    let index = Math.floor(Math.random() * remaining.length);
-    result.push(remaining.splice(index, 1)[0]);
-  }
-  return result;
+function drawWord() {
+  if (remaining.length === 0) return null;
+  const i = Math.floor(Math.random() * remaining.length);
+  return remaining.splice(i, 1)[0];
 }
 
 function initGame() {
-  currentPairs = drawWords(5);
-
   const leftCol = document.getElementById("leftColumn");
   const rightCol = document.getElementById("rightColumn");
 
   leftCol.innerHTML = "";
   rightCol.innerHTML = "";
 
-  leftSlots = [];
-  rightSlots = [];
+  slots = [];
 
-  currentPairs.forEach((word, i) => {
-    const leftDiv = createSlot(word.zh, "left", () => selectLeft(leftDiv, word));
-    leftCol.appendChild(leftDiv);
-    leftSlots.push({ el: leftDiv, word });
+  for (let i = 0; i < 5; i++) {
+    const word = drawWord();
 
-    const rightDiv = createSlot(word.en, "right", () => selectRight(rightDiv, word));
-    rightCol.appendChild(rightDiv);
-    rightSlots.push({ el: rightDiv, word });
-  });
+    const left = createSlot(word.zh, "left");
+    const right = createSlot(word.en, "right");
 
-  shuffleRight();
+    const pair = {
+      word,
+      leftEl: left,
+      rightEl: right
+    };
+
+    left.onclick = () => selectLeft(pair);
+    right.onclick = () => selectRight(pair);
+
+    leftCol.appendChild(left);
+    rightCol.appendChild(right);
+
+    slots.push(pair);
+  }
 }
 
-function createSlot(text, side, onClick) {
+function createSlot(text, side) {
   const div = document.createElement("div");
-  div.className = `slot ${side} fade-in`;
+  div.className = `slot ${side}`;
   div.innerText = text;
-  div.onclick = onClick;
   return div;
 }
 
-function shuffleRight() {
-  rightSlots.sort(() => Math.random() - 0.5);
-  const rightCol = document.getElementById("rightColumn");
-  rightCol.innerHTML = "";
-  rightSlots.forEach(obj => rightCol.appendChild(obj.el));
-}
-
-function selectLeft(div, word) {
+function selectLeft(pair) {
   document.querySelectorAll(".left").forEach(el => el.classList.remove("selected"));
-  div.classList.add("selected");
-  selectedLeft = word;
+  pair.leftEl.classList.add("selected");
+  selectedLeft = pair;
 }
 
-function selectRight(div, word) {
+function selectRight(pair) {
   if (!selectedLeft) return;
 
-  if (selectedLeft === word) {
-    const index = currentPairs.findIndex(w => w === word);
-
-    const leftObj = leftSlots[index];
-    const rightObj = rightSlots.find(obj => obj.word === word);
-
-    // fade out
-    leftObj.el.classList.add("fade-out");
-    rightObj.el.classList.add("fade-out");
-
-    setTimeout(() => {
-      if (remaining.length > 0) {
-        const newWord = drawWords(1)[0];
-
-        // 更新資料
-        currentPairs[index] = newWord;
-        leftObj.word = newWord;
-        rightObj.word = newWord;
-
-        // 更新文字
-        leftObj.el.innerText = newWord.zh;
-        rightObj.el.innerText = newWord.en;
-
-        // reset animation
-        leftObj.el.classList.remove("fade-out");
-        rightObj.el.classList.remove("fade-out");
-
-        leftObj.el.classList.add("fade-in");
-        rightObj.el.classList.add("fade-in");
-
-        // 更新 click 綁定
-        leftObj.el.onclick = () => selectLeft(leftObj.el, newWord);
-        rightObj.el.onclick = () => selectRight(rightObj.el, newWord);
-
-        shuffleRight();
-
-      } else {
-        leftObj.el.style.visibility = "hidden";
-        rightObj.el.style.visibility = "hidden";
-
-        currentPairs.splice(index, 1);
-
-        if (currentPairs.length === 0) {
-          alert("完成！");
-        }
-      }
-    }, 400);
+  if (selectedLeft.word === pair.word) {
+    replaceSlot(pair);
   }
 
   selectedLeft = null;
+}
+
+function replaceSlot(pair) {
+  const newWord = drawWord();
+
+  // fade out OLD
+  pair.leftEl.classList.add("fade-out");
+  pair.rightEl.classList.add("fade-out");
+
+  setTimeout(() => {
+    if (!newWord) {
+      pair.leftEl.style.visibility = "hidden";
+      pair.rightEl.style.visibility = "hidden";
+      return;
+    }
+
+    // update data
+    pair.word = newWord;
+
+    // update text
+    pair.leftEl.innerText = newWord.zh;
+    pair.rightEl.innerText = newWord.en;
+
+    // reset animation
+    pair.leftEl.classList.remove("fade-out");
+    pair.rightEl.classList.remove("fade-out");
+
+    pair.leftEl.classList.add("fade-in");
+    pair.rightEl.classList.add("fade-in");
+
+    // rebind click
+    pair.leftEl.onclick = () => selectLeft(pair);
+    pair.rightEl.onclick = () => selectRight(pair);
+
+  }, 300);
 }
