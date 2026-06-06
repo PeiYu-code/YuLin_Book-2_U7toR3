@@ -30,6 +30,7 @@ const words = [
 let remaining = [...words];
 let slots = [];
 let selected = null;
+let wrongCount = 0;
 
 document.getElementById("startBtn").onclick = () => {
   document.getElementById("startScreen").style.display = "none";
@@ -61,7 +62,8 @@ function initGame() {
     const slotObj = {
       word,
       leftEl: left,
-      rightEl: right
+      rightEl: right,
+      matched: false
     };
 
     left.onclick = () => selectLeft(slotObj);
@@ -75,19 +77,32 @@ function initGame() {
 }
 
 /* =========================
-   SLOT CREATION
+   SLOT
 ========================= */
 function createSlot(text, side) {
   const div = document.createElement("div");
-  div.className = `slot ${side} fade-in`;
+  div.className = `slot ${side}`;
   div.innerText = text;
   return div;
+}
+
+/* =========================
+   RESET COLORS
+========================= */
+function resetColors() {
+  document.querySelectorAll(".slot").forEach(el => {
+    el.style.backgroundColor = "";
+    el.style.borderColor = "";
+    el.style.color = "";
+  });
 }
 
 /* =========================
    SELECT LEFT
 ========================= */
 function selectLeft(slot) {
+  resetColors();
+
   document.querySelectorAll(".left")
     .forEach(el => el.classList.remove("selected"));
 
@@ -101,46 +116,45 @@ function selectLeft(slot) {
 function selectRight(slot) {
   if (!selected) return;
 
-  if (selected.word !== slot.word) {
-    selected = null;
-    return;
+  const left = selected;
+  const right = slot;
+
+  if (left.word === right.word) {
+    // ✅ correct
+    left.matched = true;
+
+    left.leftEl.style.backgroundColor = "#2e7d32";
+    left.leftEl.style.color = "white";
+    left.rightEl.style.backgroundColor = "#2e7d32";
+    right.rightEl.style.color = "white";
+
+    left.leftEl.classList.remove("selected");
+
+    checkFinish();
+
+  } else {
+    // ❌ wrong
+    wrongCount++;
+
+    left.leftEl.style.backgroundColor = "#c62828";
+    left.leftEl.style.color = "white";
+
+    right.rightEl.style.backgroundColor = "#c62828";
+    right.rightEl.style.color = "white";
   }
 
-  replaceSlot(slot);
   selected = null;
 }
 
 /* =========================
-   REPLACE ONLY ONE SLOT
+   CHECK FINISH
 ========================= */
-function replaceSlot(slot) {
-  const newWord = drawWord();
+function checkFinish() {
+  const allDone = slots.every(s => s.matched);
 
-  // fade out ONLY this pair
-  slot.leftEl.classList.add("fade-out");
-  slot.rightEl.classList.add("fade-out");
-
-  setTimeout(() => {
-
-    if (!newWord) {
-      slot.leftEl.style.visibility = "hidden";
-      slot.rightEl.style.visibility = "hidden";
-      return;
-    }
-
-    // update data (NO reshuffle, NO reorder)
-    slot.word = newWord;
-
-    // update text
-    slot.leftEl.innerText = newWord.zh;
-    slot.rightEl.innerText = newWord.en;
-
-    // reset animation
-    slot.leftEl.classList.remove("fade-out");
-    slot.rightEl.classList.remove("fade-out");
-
-    slot.leftEl.classList.add("fade-in");
-    slot.rightEl.classList.add("fade-in");
-
-  }, 250);
+  if (allDone) {
+    setTimeout(() => {
+      alert(`完成！\n錯誤次數：${wrongCount}`);
+    }, 200);
+  }
 }
