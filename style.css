@@ -1,10 +1,11 @@
-
 body {
   margin: 0;
   font-family: sans-serif;
   background-image: url("https://images.unsplash.com/photo-1507525428034-b723cf961d3e");
   background-size: cover;
   background-position: center;
+  background-repeat: no-repeat;   /* ✅ 修正重複背景 */
+  background-attachment: fixed;
 }
 
 #startScreen {
@@ -51,7 +52,7 @@ body {
   justify-content: center;
   border-radius: 10px;
   cursor: pointer;
-  transition: 0.3s;
+  transition: all 0.4s ease;   /* ✅ 讓動畫順 */
 }
 
 /* 左邊 */
@@ -76,6 +77,19 @@ body {
   box-shadow: 0 0 10px orange;
 }
 
+/* fade out */
 .matched {
   opacity: 0;
+  transform: scale(0.8);
+}
+
+/* 新題淡入 */
+.new {
+  opacity: 0;
+  transform: scale(0.8);
+}
+
+.fade-in {
+  opacity: 1;
+  transform: scale(1);
 }
