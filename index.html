@@ -13,7 +13,7 @@
         
         <!-- 狀態與計分板 -->
         <div class="scoreboard">
-            <p>剩餘單字總數: <span id="remaining-count">0</span></p>
+            <p>本回剩餘單字數: <span id="remaining-count">0</span></p>
             <p>目前得分 (成功): <span id="success-score">0</span> | 錯誤次數: <span id="error-score">0</span></p>
         </div>
 
@@ -30,12 +30,21 @@
 
     <!-- 遊戲結束結算畫面 -->
     <div id="result-modal" class="modal hidden">
-        <div class="modal-content">
+        <div class="modal-content" style="max-width: 450px; width: 90%;">
             <h2>測試結束！</h2>
-            <p>太棒了，你已完成所有單字測試！</p>
+            <p>太棒了，你已完成本回 50 個單字測試！</p>
             <hr>
             <p>成功配對: <span id="final-success">0</span> 次</p>
             <p>配對錯誤: <span id="final-errors">0</span> 次</p>
+            
+            <!-- 新增：錯題列表顯示區 -->
+            <div id="wrong-words-box" style="margin-top: 15px; text-align: left; background: #fee2e2; padding: 15px; border-radius: 8px; max-height: 150px; overflow-y: auto; display: none;">
+                <strong style="color: #b91c1c;">需加強的單字 (答錯項目)：</strong>
+                <ul id="wrong-words-list" style="margin: 5px 0 0 20px; padding: 0; color: #7f1d1d; line-height: 1.5;">
+                    <!-- 錯題將由 JS 動態帶入 -->
+                </ul>
+            </div>
+
             <button id="restart-btn">再試一次</button>
         </div>
     </div>
