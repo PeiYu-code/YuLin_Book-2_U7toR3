@@ -1,25 +1,45 @@
 <!DOCTYPE html>
-<html lang="zh">
+<html lang="zh-TW">
 <head>
-  <meta charset="UTF-8">
-  <title>Word Pairing Game</title>
-  <link rel="stylesheet" href="style.css">
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>英文單字配對自我測試</title>
+    <link rel="stylesheet" href="style.css">
 </head>
 <body>
 
-<div id="startScreen">
-  <button id="startBtn">Start</button>
-</div>
+    <div class="game-container">
+        <h1>英文單字配對測試</h1>
+        
+        <!-- 狀態與計分板 -->
+        <div class="scoreboard">
+            <p>剩餘單字總數: <span id="remaining-count">0</span></p>
+            <p>目前得分 (成功): <span id="success-score">0</span> | 錯誤次數: <span id="error-score">0</span></p>
+        </div>
 
-<div id="gameScreen" style="display:none;">
-  <div class="game-container">
-    <div class="columns">
-      <div id="leftColumn"></div>
-      <div id="rightColumn"></div>
+        <!-- 配對主區域 -->
+        <div class="match-area">
+            <div class="column" id="english-column">
+                <!-- 由 JavaScript 動態生成 5 個英文 slots -->
+            </div>
+            <div class="column" id="chinese-column">
+                <!-- 由 JavaScript 動態生成 5 個中文 slots -->
+            </div>
+        </div>
     </div>
-  </div>
-</div>
 
-<script src="script.js"></script>
+    <!-- 遊戲結束結算畫面 -->
+    <div id="result-modal" class="modal hidden">
+        <div class="modal-content">
+            <h2>測試結束！</h2>
+            <p>太棒了，你已完成所有單字測試！</p>
+            <hr>
+            <p>成功配對: <span id="final-success">0</span> 次</p>
+            <p>配對錯誤: <span id="final-errors">0</span> 次</p>
+            <button id="restart-btn">再試一次</button>
+        </div>
+    </div>
+
+    <script src="script.js"></script>
 </body>
 </html>
