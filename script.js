@@ -12,14 +12,14 @@ const wordBank = [
 
 // 遊戲狀態變數
 let pool = [];          // 尚未使用的單字池
-let currentLeft = [];   // 目前左邊畫面的單字物件
-let currentRight = [];  // 目前右邊畫面的單字物件
+let slotsLeft = [];     // 左邊固定 5 個 slots 的狀態 (儲存單字物件)
+let slotsRight = [];    // 右邊固定 5 個 slots 的狀態 (儲存單字物件)
 
-let selectedEngSlot = null;
+let selectedEngIndex = null; // 改用索引來記錄選取位置
 let successCount = 0;
 let errorCount = 0;
 
-// 宣告 DOM 變數 (在 DOMContentLoaded 中賦值)
+// 宣告 DOM 變數
 let engColumn, chColumn, remainingCountEl, successScoreEl, errorScoreEl, resultModal, finalSuccessEl, finalErrorsEl, restartBtn;
 
 // 洗牌函數 (Shuffle)
@@ -32,24 +32,30 @@ function initGame() {
     pool = [...wordBank]; // 複製一份完整字庫
     successCount = 0;
     errorCount = 0;
-    selectedEngSlot = null;
+    selectedEngIndex = null;
     
     successScoreEl.textContent = successCount;
     errorScoreEl.textContent = errorCount;
     resultModal.classList.add("hidden");
 
-    // 初始抽出 5 個單字放上檯面 (若字庫不足 5 個則全拿)
-    currentLeft = [];
+    // 1. 先隨機抽出 5 個單字作為檯面基礎
+    const currentWords = [];
     const initSize = Math.min(5, pool.length);
     for(let i = 0; i < initSize; i++) {
         const randomIndex = Math.floor(Math.random() * pool.length);
-        currentLeft.push(pool.splice(randomIndex, 1)[0]);
+        currentWords.push(pool.splice(randomIndex, 1)[0]);
     }
-    // 右邊的中文一開始跟左邊一樣
-    currentRight = [...currentLeft];
+
+    // 2. 左邊按原本抽出順序放，右邊中文把這 5 個順序打亂放（確保左右是一對一亂序）
+    slotsLeft = [...currentWords];
+    slotsRight = shuffle([...currentWords]);
+
+    // 補滿 5 個位置（若不夠字，用 null 填補）
+    while(slotsLeft.length < 5) slotsLeft.push(null);
+    while(slotsRight.length < 5) slotsRight.push(null);
 
     updateRemainingCount();
-    renderBoard();
+    renderBoardFirstTime();
 }
 
 // 更新剩餘單字數顯示
@@ -57,90 +63,139 @@ function updateRemainingCount() {
     remainingCountEl.textContent = pool.length;
 }
 
-// 渲染（繪製）左 5 右 5 的 Slots 畫面
-function renderBoard() {
+// 第一次或重置時，建立固定的 5 個 HTML Slot 節點
+function renderBoardFirstTime() {
     engColumn.innerHTML = "";
     chColumn.innerHTML = "";
 
-    // 隨機打亂目前要顯示的英文與中文順序
-    const shuffledEng = shuffle([...currentLeft]);
-    const shuffledCh = shuffle([...currentRight]);
+    for (let i = 0; i < 5; i++) {
+        // 建立英文 Slot
+        const engSlot = document.createElement("div");
+        engSlot.className = "slot";
+        engSlot.dataset.index = i;
+        engSlot.addEventListener("click", () => handleEngClick(i));
+        engColumn.appendChild(engSlot);
 
-    // 生成英文 Slots
-    shuffledEng.forEach(item => {
-        const slot = document.createElement("div");
-        slot.className = "slot " + (item.isNew ? "fade-in" : "");
-        slot.textContent = item.eng;
-        slot.dataset.eng = item.eng;
-        slot.addEventListener("click", () => handleEngClick(slot));
-        engColumn.appendChild(slot);
-        delete item.isNew; // 用完標籤後清除
-    });
-
-    // 生成中文 Slots
-    shuffledCh.forEach(item => {
-        const slot = document.createElement("div");
-        slot.className = "slot " + (item.isNewCh ? "fade-in" : "");
-        slot.textContent = item.ch;
-        slot.dataset.eng = item.eng;
-        slot.addEventListener("click", () => handleChClick(slot));
-        chColumn.appendChild(slot);
-        delete item.isNewCh; // 用完標籤後清除
-    });
+        // 建立中文 Slot
+        const chSlot = document.createElement("div");
+        chSlot.className = "slot";
+        chSlot.dataset.index = i;
+        chSlot.addEventListener("click", () => handleChClick(i));
+        chColumn.appendChild(chSlot);
+    }
+    
+    // 更新這 5 個格子的內容
+    refreshAllSlots();
 }
 
-// 點選左邊英文 Slot
-function handleEngClick(slot) {
-    if (selectedEngSlot === slot) {
-        slot.classList.remove("selected");
-        selectedEngSlot = null;
+// 根據 slotsLeft 和 slotsRight 陣列，更新畫面上所有格子的文字與顯示狀態
+function refreshAllSlots() {
+    const engSlots = engColumn.querySelectorAll(".slot");
+    const chSlots = chColumn.querySelectorAll(".slot");
+
+    for (let i = 0; i < 5; i++) {
+        // 更新英文格子
+        if (slotsLeft[i]) {
+            engSlots[i].textContent = slotsLeft[i].eng;
+            engSlots[i].style.visibility = "visible";
+            engSlots[i].classList.remove("fade-out");
+        } else {
+            engSlots[i].style.visibility = "hidden"; // 沒字了就隱藏不佔位
+        }
+
+        // 更新中文格子
+        if (slotsRight[i]) {
+            chSlots[i].textContent = slotsRight[i].ch;
+            chSlots[i].style.visibility = "visible";
+            chSlots[i].classList.remove("fade-out");
+        } else {
+            chSlots[i].style.visibility = "hidden";
+        }
+    }
+}
+
+// 點選左邊英文 Slot (傳入索引 0~4)
+function handleEngClick(index) {
+    if (!slotsLeft[index]) return; // 空格子點擊無效
+
+    const engSlots = engColumn.querySelectorAll(".slot");
+
+    if (selectedEngIndex === index) {
+        engSlots[index].classList.remove("selected");
+        selectedEngIndex = null;
         return;
     }
-    document.querySelectorAll("#english-column .slot").forEach(s => s.classList.remove("selected"));
-    slot.classList.add("selected");
-    selectedEngSlot = slot;
+    
+    engSlots.forEach(s => s.classList.remove("selected"));
+    engSlots[index].classList.add("selected");
+    selectedEngIndex = index;
 }
 
-// 點選右邊中文 Slot
-function handleChClick(chSlot) {
-    if (!selectedEngSlot) {
+// 點選右邊中文 Slot (傳入索引 0~4)
+function handleChClick(chIndex) {
+    if (!slotsRight[chIndex]) return; // 空格子點擊無效
+
+    if (selectedEngIndex === null) {
         alert("請先在左邊選擇一個英文單字！");
         return;
     }
 
-    const engSlot = selectedEngSlot;
-    
-    if (engSlot.dataset.eng === chSlot.dataset.eng) {
+    const engIndex = selectedEngIndex;
+    const engSlots = engColumn.querySelectorAll(".slot");
+    const chSlots = chColumn.querySelectorAll(".slot");
+
+    const engWord = slotsLeft[engIndex];
+    const chWord = slotsRight[chIndex];
+
+    // 比對點選的英文與中文是否屬於同一個單字物件
+    if (engWord.eng === chWord.eng) {
         // 配對成功
         successCount++;
         successScoreEl.textContent = successCount;
         
-        engSlot.classList.remove("selected");
-        selectedEngSlot = null;
+        engSlots[engIndex].classList.remove("selected");
+        selectedEngIndex = null;
 
-        engSlot.classList.add("fade-out");
-        chSlot.classList.add("fade-out");
+        // 只有這兩個格子單獨淡出
+        engSlots[engIndex].classList.add("fade-out");
+        chSlots[chIndex].classList.add("fade-out");
 
         setTimeout(() => {
-            const matchedEng = engSlot.dataset.eng;
-            
-            currentLeft = currentLeft.filter(item => item.eng !== matchedEng);
-            currentRight = currentRight.filter(item => item.eng !== matchedEng);
-
+            // 從字庫補新字
             if (pool.length > 0) {
-                const nextWord = pool.splice(Math.floor(Math.random() * pool.length), 1)[0];
-                nextWord.isNew = true;   // 加上標籤讓新補的字有淡入動畫
-                nextWord.isNewCh = true;
-                currentLeft.push(nextWord);
-                currentRight.push(nextWord);
+                // 抽出一個新字
+                const newWord = pool.splice(Math.floor(Math.random() * pool.length), 1)[0];
+                
+                // 直接原地塞進剛才空出來的左邊與右邊位置
+                slotsLeft[engIndex] = newWord;
+                slotsRight[chIndex] = newWord;
+
+                // 重新整理文字內容
+                refreshAllSlots();
+
+                // 讓這兩個新補上字的格子播放淡入動畫
+                engSlots[engIndex].classList.add("fade-in");
+                chSlots[chIndex].classList.add("fade-in");
+                
+                // 動畫結束後移除淡入 class 以便下次使用
+                setTimeout(() => {
+                    engSlots[engIndex].classList.remove("fade-in");
+                    chSlots[chIndex].classList.remove("fade-in");
+                }, 500);
+
+            } else {
+                // 如果字庫沒字了，這兩個位置就變空 (null)
+                slotsLeft[engIndex] = null;
+                slotsRight[chIndex] = null;
+                refreshAllSlots();
             }
 
             updateRemainingCount();
 
-            if (currentLeft.length === 0) {
+            // 檢查是否左欄 5 個 slots 都清空了（代表全部單字測試完畢）
+            const isGameOver = slotsLeft.every(item => item === null);
+            if (isGameOver) {
                 showResult();
-            } else {
-                renderBoard();
             }
         }, 500);
 
@@ -149,13 +204,13 @@ function handleChClick(chSlot) {
         errorCount++;
         errorScoreEl.textContent = errorCount;
 
-        engSlot.classList.add("wrong");
-        chSlot.classList.add("wrong");
+        engSlots[engIndex].classList.add("wrong");
+        chSlots[chIndex].classList.add("wrong");
 
         setTimeout(() => {
-            engSlot.classList.remove("wrong", "selected");
-            chSlot.classList.remove("wrong");
-            selectedEngSlot = null;
+            engSlots[engIndex].classList.remove("wrong", "selected");
+            chSlots[chIndex].classList.remove("wrong");
+            selectedEngIndex = null;
         }, 500);
     }
 }
