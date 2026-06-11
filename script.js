@@ -107,15 +107,15 @@ const wordBank = [
 ];
 
 // 2. 遊戲狀態變數
-let wordPool = [];        // 從主資料庫抽出的 45 題單字池
-let activeEng = [];       // 目前畫面上顯示的 5 個英文單字
-let activeCh = [];        // 目前畫面上顯示的 5 個中文單字
+let wordPool = [];        
+let activeEng = [];       
+let activeCh = [];        
 let selectedEngSlot = null;
 let selectedChSlot = null;
 let remainingCount = 0;
 let successScore = 0;
 let errorScore = 0;
-let wrongWordsSet = new Set(); // 用來記錄這回合答錯過的單字
+let wrongWordsSet = new Set(); 
 
 // 3. 亂數洗牌函數 (Fisher-Yates Shuffle)
 function shuffle(array) {
@@ -130,7 +130,7 @@ function initGame() {
   let allWords = [...wordBank];
   shuffle(allWords);
   
-  // 修正點 1: 這裡嚴格限制每回只抽取 45 個單字
+  // 每回嚴格抽取 45 個單字測試
   const gameSize = Math.min(45, allWords.length);
   wordPool = allWords.slice(0, gameSize);
   
@@ -294,11 +294,11 @@ function checkMatch() {
     errorScore++;
     updateScoreboard();
 
-    // 修正點 2: 當學生答錯時，去尋找被點選的英文單字正確對應的中文翻譯，確保在結果頁面能秀出正確的單字組合
+    // 依據點選的英文單字，抓取完整的正確答案組並記錄起來
     const wrongEngText = selectedEngSlot.textContent;
     const correctWordObj = wordBank.find(w => w.eng === wrongEngText);
     if (correctWordObj) {
-      wrongWordsSet.add(`${correctWordObj.eng} (${correctWordObj.ch})`);
+      wrongWordsSet.add(`${correctWordObj.eng} — ${correctWordObj.ch}`);
     }
 
     selectedEngSlot.classList.add('wrong');
