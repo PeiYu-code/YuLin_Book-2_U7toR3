@@ -193,7 +193,7 @@ function checkMatch() {
         successScore++;
         updateScoreboard();
         
-        // 暫存目前的選取節點，避免計時器異步執行時出錯
+        // 暫存目前的選取節點
         const currentEng = selectedEngSlot;
         const currentCh = selectedChSlot;
         
@@ -201,26 +201,63 @@ function checkMatch() {
         selectedChSlot = null;
         
         setTimeout(() => {
-            // 從畫面活動陣列中移除剛剛過關的單字
+            // 1. 找出原本配對成功的單字在資料陣列中的索引位置
             const engIndex = activeEng.findIndex(w => w.eng === engWord);
-            activeEng.splice(engIndex, 1);
-            
             const chIndex = activeCh.findIndex(w => w.eng === chWord);
-            activeCh.splice(chIndex, 1);
             
-            // 如果單字池還有牌，補上一張新單字到活動陣列中
+            // 2. 從單字池中抽出一張全新的字
+            let nextWord = null;
             if (wordPool.length > 0) {
-                const nextWord = wordPool.pop();
-                activeEng.push(nextWord);
-                activeCh.push(nextWord);
+                nextWord = wordPool.pop();
+                // 在內部陣列中直接替換掉舊單字
+                activeEng[engIndex] = nextWord;
+                activeCh[chIndex] = nextWord;
+            } else {
+                // 如果單字池空了，直接移除
+                activeEng.splice(engIndex, 1);
+                activeCh.splice(chIndex, 1);
             }
             
-            // ✨ 核心修正：每當補上新字，立即將目前的中文活動陣列徹底重新洗牌！
-            // 這樣新字就不會出現在相同的格子位置，完全打破位置記憶的規律。
-            shuffle(activeCh);
+            // 3. 更新英文 DOM：完全不動其他 4 格，只在原位替換新字並重新觸發 fade-in
+            if (nextWord) {
+                currentEng.textContent = nextWord.eng;
+                currentEng.dataset.word = nextWord.eng;
+                currentEng.classList.remove('selected', 'fade-out', 'fade-in');
+                void currentEng.offsetWidth; // 強制重繪以重置動畫
+                currentEng.classList.add('fade-in');
+            } else {
+                currentEng.remove();
+            }
             
-            // 重新渲染畫面
-            renderColumns();
+            // 4. 更新中文 DOM：先處理被點擊的這一格，使其重組重生
+            if (nextWord) {
+                currentCh.textContent = nextWord.ch;
+                currentCh.dataset.word = nextWord.eng;
+                currentCh.classList.remove('selected', 'fade-out', 'fade-in');
+                void currentCh.offsetWidth;
+                currentCh.classList.add('fade-in');
+            } else {
+                currentCh.remove();
+            }
+            
+            // 5. ✨ 只洗牌中文欄內部的文字內容，完全不破壞 DOM 結構與英文欄
+            const chColumn = document.getElementById('chinese-column');
+            const allChSlots = Array.from(chColumn.children);
+            
+            // 收集當前剩餘（包含剛剛重生）的所有中文格子的資料內容
+            let currentChData = allChSlots.map(slot => ({
+                text: slot.textContent,
+                wordKey: slot.dataset.word
+            }));
+            
+            // 隨機打亂這些資料
+            shuffle(currentChData);
+            
+            // 將洗牌完的文字與 dataset 屬性依序倒回原本的中文格子中
+            allChSlots.forEach((slot, index) => {
+                slot.textContent = currentChData[index].text;
+                slot.dataset.word = currentChData[index].wordKey;
+            });
             
             // 判斷遊戲是否結束
             if (activeEng.length === 0) {
