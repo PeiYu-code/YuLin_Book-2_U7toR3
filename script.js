@@ -106,7 +106,7 @@ const wordBank = [
   { eng: "have a lie-down", ch: "躺下休息" }
 ];
 
-// 2. 遊戲狀態變數
+// 2. 遊戲狀態與記錄變數
 let wordPool = [];        
 let activeEng = [];       
 let activeCh = [];        
@@ -116,6 +116,11 @@ let remainingCount = 0;
 let successScore = 0;
 let errorScore = 0;
 let wrongWordsSet = new Set(); 
+
+let startTime = null; // 用於計算單輪花費秒數
+
+// ⚠️ 請把你在 Google Apps Script 部署得到的 Web App 網址貼在下方雙引號內：
+const GOOGLE_APP_URL = "YOUR_PASTED_URL_HERE";
 
 // 3. 亂數洗牌函數 (Fisher-Yates Shuffle)
 function shuffle(array) {
@@ -139,6 +144,9 @@ function initGame() {
   errorScore = 0;
   wrongWordsSet.clear();
   updateScoreboard();
+
+  // ⏱️ 記錄此輪遊戲的起點時間
+  startTime = new Date();
 
   activeEng = [];
   activeCh = [];
@@ -294,11 +302,10 @@ function checkMatch() {
     errorScore++;
     updateScoreboard();
 
-    // 依據點選的英文單字，抓取完整的正確答案組並記錄起來
     const wrongEngText = selectedEngSlot.textContent;
     const correctWordObj = wordBank.find(w => w.eng === wrongEngText);
     if (correctWordObj) {
-      wrongWordsSet.add(`${correctWordObj.eng} — ${correctWordObj.ch}`);
+      wrongWordsSet.add(`${correctWordObj.eng}(${correctWordObj.ch})`);
     }
 
     selectedEngSlot.classList.add('wrong');
@@ -316,7 +323,7 @@ function checkMatch() {
   }
 }
 
-// 10. 顯示結算畫面彈出視窗
+// 10. 顯示結算畫面彈出視窗 + 暗中上傳結果與時間記錄至 Google 試算表
 function showResult() {
   document.getElementById('final-success').textContent = successScore;
   document.getElementById('final-error').textContent = errorScore;
@@ -324,15 +331,39 @@ function showResult() {
   const wrongWordsList = document.getElementById('wrong-words-list');
   wrongWordsList.innerHTML = '';
 
+  let wrongWordsString = "";
   if (wrongWordsSet.size > 0) {
     document.getElementById('wrong-words-box').style.display = 'block';
+    let items = [];
     wrongWordsSet.forEach(wordStr => {
+      items.push(wordStr);
       const li = document.createElement('li');
       li.textContent = wordStr;
       wrongWordsList.appendChild(li);
     });
+    wrongWordsString = items.join(", "); 
   } else {
     document.getElementById('wrong-words-box').style.display = 'none';
+    wrongWordsString = "無答錯單字";
+  }
+
+  // ⏱️ 計算時間花費（秒數）
+  const endTime = new Date();
+  const timeSpentSeconds = startTime ? Math.round((endTime - startTime) / 1000) : 0;
+
+  // 🤫 靜默發送：利用 fetch (no-cors) 異步將數據拋到 Google 試算表後端
+  if (GOOGLE_APP_URL && GOOGLE_APP_URL !== "YOUR_PASTED_URL_HERE") {
+    fetch(GOOGLE_APP_URL, {
+      method: 'POST',
+      mode: 'no-cors', 
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        successScore: successScore,
+        errorScore: errorScore,
+        wrongWords: wrongWordsString,
+        timeSpent: timeSpentSeconds
+      })
+    }).catch(err => console.log("Silent logging status:", err));
   }
 
   document.getElementById('result-modal').classList.remove('hidden');
