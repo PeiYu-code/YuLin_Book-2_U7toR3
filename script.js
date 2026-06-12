@@ -351,12 +351,12 @@ function showResult() {
   const endTime = new Date();
   const timeSpentSeconds = startTime ? Math.round((endTime - startTime) / 1000) : 0;
 
-  // 🤫 靜默發送：利用 fetch (no-cors) 異步將數據拋到 Google 試算表後端
+  // 🤫 修正傳輸格式：改用 text/plain 繞過瀏覽器的 CORS 攔截，確保 100% 成功傳送
   if (GOOGLE_APP_URL && GOOGLE_APP_URL !== "YOUR_PASTED_URL_HERE") {
     fetch(GOOGLE_APP_URL, {
       method: 'POST',
       mode: 'no-cors', 
-      headers: { 'Content-Type': 'application/json' },
+      headers: { 'Content-Type': 'text/plain;charset=utf-8' },
       body: JSON.stringify({
         successScore: successScore,
         errorScore: errorScore,
