@@ -107,16 +107,15 @@ const wordBank = [
 ];
 
 // 2. 遊戲狀態與記錄變數
-let wordPool = [];        
-let activeEng = [];       
-let activeCh = [];        
+let wordPool = [];
+let activeEng = [];
+let activeCh = [];
 let selectedEngSlot = null;
 let selectedChSlot = null;
 let remainingCount = 0;
 let successScore = 0;
 let errorScore = 0;
-let wrongWordsSet = new Set(); 
-
+let wrongWordsSet = new Set();
 let startTime = null; // 用於計算單輪花費秒數
 
 // ⚠️ 請把你在 Google Apps Script 部署得到的 Web App 網址貼在下方雙引號內：
@@ -134,11 +133,10 @@ function shuffle(array) {
 function initGame() {
   let allWords = [...wordBank];
   shuffle(allWords);
-  
+
   // 每回嚴格抽取 45 個單字測試
   const gameSize = Math.min(45, allWords.length);
   wordPool = allWords.slice(0, gameSize);
-  
   remainingCount = wordPool.length;
   successScore = 0;
   errorScore = 0;
@@ -194,7 +192,7 @@ function renderColumns() {
     slot.className = 'slot fade-in';
     slot.textContent = word.ch;
     slot.dataset.type = 'ch';
-    slot.dataset.word = word.eng; 
+    slot.dataset.word = word.eng;
     slot.addEventListener('click', handleChClick);
     chColumn.appendChild(slot);
   });
@@ -239,59 +237,32 @@ function checkMatch() {
     successScore++;
     updateScoreboard();
 
-    const currentEng = selectedEngSlot;
-    const currentCh = selectedChSlot;
     selectedEngSlot = null;
     selectedChSlot = null;
 
     setTimeout(() => {
+      // 🎯 關鍵修正：精準找出這顆單字在 activeEng 與 activeCh 陣列中的記憶體位置
       const engIndex = activeEng.findIndex(w => w.eng === engWord);
-      const chIndex = activeCh.findIndex(w => w.eng === chWord);
+      const chIndex = activeCh.findIndex(w => w.eng === engWord);
 
-      let nextWord = null;
       if (wordPool.length > 0) {
-        nextWord = wordPool.pop();
-        activeEng[engIndex] = nextWord;
-        activeCh[chIndex] = nextWord;
+        // 字庫還有字，抽新字精準遞補到該位置
+        const nextWord = wordPool.pop();
+        if (engIndex !== -1) activeEng[engIndex] = nextWord;
+        if (chIndex !== -1) activeCh[chIndex] = nextWord;
       } else {
-        activeEng.splice(engIndex, 1);
-        activeCh.splice(chIndex, 1);
+        // 字庫空了，將此題從記憶體陣列中精準移除（畫面單字開始遞減）
+        if (engIndex !== -1) activeEng.splice(engIndex, 1);
+        if (chIndex !== -1) activeCh.splice(chIndex, 1);
       }
 
-      if (nextWord) {
-        currentEng.textContent = nextWord.eng;
-        currentEng.dataset.word = nextWord.eng;
-        currentEng.classList.remove('selected', 'fade-out', 'fade-in');
-        void currentEng.offsetWidth; 
-        currentEng.classList.add('fade-in');
-      } else {
-        currentEng.remove();
-      }
+      // 🎲 每次答對後，將剩下的中文陣列重新亂數洗牌
+      shuffle(activeCh);
 
-      if (nextWord) {
-        currentCh.textContent = nextWord.ch;
-        currentCh.dataset.word = nextWord.eng;
-        currentCh.classList.remove('selected', 'fade-out', 'fade-in');
-        void currentCh.offsetWidth;
-        currentCh.classList.add('fade-in');
-      } else {
-        currentCh.remove();
-      }
+      // 🔄 關鍵修正：直接呼叫 renderColumns()，徹底杜絕 DOM 節點與資料錯位的卡關 Bug
+      renderColumns();
 
-      const chColumn = document.getElementById('chinese-column');
-      const allChSlots = Array.from(chColumn.children);
-      let currentChData = allChSlots.map(slot => ({
-        text: slot.textContent,
-        wordKey: slot.dataset.word
-      }));
-
-      shuffle(currentChData);
-
-      allChSlots.forEach((slot, index) => {
-        slot.textContent = currentChData[index].text;
-        slot.dataset.word = currentChData[index].wordKey;
-      });
-
+      // 🏁 檢查遊戲是否結束
       if (activeEng.length === 0) {
         showResult();
       }
@@ -327,11 +298,11 @@ function checkMatch() {
 function showResult() {
   document.getElementById('final-success').textContent = successScore;
   document.getElementById('final-error').textContent = errorScore;
-  
+
   const wrongWordsList = document.getElementById('wrong-words-list');
   wrongWordsList.innerHTML = '';
-
   let wrongWordsString = "";
+
   if (wrongWordsSet.size > 0) {
     document.getElementById('wrong-words-box').style.display = 'block';
     let items = [];
@@ -341,7 +312,7 @@ function showResult() {
       li.textContent = wordStr;
       wrongWordsList.appendChild(li);
     });
-    wrongWordsString = items.join(", "); 
+    wrongWordsString = items.join(", ");
   } else {
     document.getElementById('wrong-words-box').style.display = 'none';
     wrongWordsString = "無答錯單字";
@@ -355,8 +326,10 @@ function showResult() {
   if (GOOGLE_APP_URL && GOOGLE_APP_URL !== "YOUR_PASTED_URL_HERE") {
     fetch(GOOGLE_APP_URL, {
       method: 'POST',
-      mode: 'no-cors', 
-      headers: { 'Content-Type': 'text/plain;charset=utf-8' },
+      mode: 'no-cors',
+      headers: {
+        'Content-Type': 'text/plain;charset=utf-8'
+      },
       body: JSON.stringify({
         successScore: successScore,
         errorScore: errorScore,
